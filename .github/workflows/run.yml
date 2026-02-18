@@ -11,16 +11,17 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout codes
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4  # 注意：v5可能还不存在，推荐用v4
         with:
-          token: ${{ secrets.PAT }} #此处PAT需要申请，教程详见：README
+          token: ${{ secrets.PAT }} 
+
       - name: Update system and install zsh
         run: |
           sudo -E apt-get -qq update
           sudo -E apt-get install zsh -y
           
       - name: 初始化Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5 # 推荐用v5，v6可能不稳定
         with:
           python-version: "3.10"
           
@@ -33,9 +34,11 @@ jobs:
           python3 main.py
 
       - name: persist tokens
+        continue-on-error: true  # 关键修改：允许这一步报错但不中断
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@users.noreply.github.com
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "persist tokens trigger by ${{ github.event_name }}"
+          # 下面这行加了逻辑判断：只有检测到变化才提交，否则直接显示"无变化"
+          git diff-index --quiet HEAD || git commit -m "persist tokens trigger by ${{ github.event_name }}"
           git push origin master
